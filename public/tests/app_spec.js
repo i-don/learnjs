@@ -15,13 +15,6 @@ describe('LearnJS', function() {
     expect(learnjs.problemView).toHaveBeenCalledWith('42');
   });
 
-  describe('problem view', function() {
-    it('has a title that includes the problem number', function() {
-      var view = learnjs.problemView('1');
-      expect(view.text()).toEqual('Problem #1 Coming soon!');
-    });
-  });
-
   it('invokes the router when loaded', function() {
     spyOn(learnjs, 'showView');
     learnjs.appOnReady();
@@ -33,6 +26,39 @@ describe('LearnJS', function() {
     spyOn(learnjs, 'showView');
     $(window).trigger('hashchange')
     expect(learnjs.showView).toHaveBeenCalledWith(window.location.hash);
+  });
+
+  describe('problem view', function() {
+    it('has a title that includes the problem number', function() {
+      var view = learnjs.problemView('1');
+      expect(view.find('.title').text()).toEqual('Problem #1');
+    });
+
+    it('shows the description', function() {
+      var view = learnjs.problemView('1');
+      expect(view.find('[data-name="description"]').text()).toEqual('What is truth?');
+    });
+
+    it('shows the problem code', function() {
+      var view = learnjs.problemView('1');
+      expect(view.find('[data-name="code"]').text()).toEqual('function problem() { return __; }');
+    });
+  });
+
+  describe('answer section', function() {
+    it('can check a correct answer by hitting a button', function() {
+      var view = learnjs.problemView('1');
+      view.find('.answer').val('true');
+      view.find('.check-btn').click();
+      expect(view.find('.result').text()).toEqual('Correct! Next Problem');
+    });
+
+    it('rejects an incorrect answer', function() {
+      var view = learnjs.problemView('1');
+      view.find('.answer').val('false');
+      view.find('.check-btn').click();
+      expect(view.find('.result').text()).toEqual('Incorrect!');
+    });
   });
 
 });
