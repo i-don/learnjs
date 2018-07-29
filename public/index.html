@@ -8,6 +8,8 @@
     <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css'>
     <script src='https://code.jquery.com/jquery-2.1.4.min.js'></script>
     <script src='vendor.js'></script>
+    <script src='lib/aws-cognito-sdk.min.js'></script>
+    <script src='lib/amazon-cognito-identity.min.js'></script>
     <script src='app.js'></script>
     <style type="text/css" media="all">
       body { margin-top: 30px; }
@@ -42,9 +44,13 @@
   <body>
     <div class='markup'>
       <div class='nav-container no-select fixed-top u-full-width'>
-        <ul class='inline-list hover-links nav-list six columns'>
+        <ul class='inline-list hover-links nav-list eight columns'>
           <li><a class='text-lg' href='#'>LearnJS</a></li>
           <li><a href='#problem-1'>Start</a></li>
+        </ul>
+        <ul class='inline-list hover-links four columns signin-bar'>
+          <li><a class='profile-link' href="#profile"></a></li>
+          <li><a href='#signin'>SignIn</a></li>
         </ul>
       </div>
       <div class='view-container container'>
@@ -72,6 +78,44 @@
               <p class='result'></p>
             </div>
           </form>
+        </div>
+        <div class='signin-view'>
+          <h3>SignIn</h3>
+          <p class='message'></p>
+          <form>
+            <div class='enter-cognito-signin'>
+              <div>
+                <input type='text' class='form-control username' placeholder='username'></input>
+              </div>
+              <div>
+                <input type='password' class='form-control password' placeholder='password' ></input>
+              </div>
+              <div>
+                <button class='button-primary cognito-signin-btn'>Sign in with cognito</button>
+              </div>
+            </div>
+            <div class='enter-new-cognito-password'>
+              <div>
+                <input type='password' class='form-control new-password' placeholder='new password' ></input>
+              </div>
+              <div>
+                <button class='button-primary set-cognito-password-btn'>Set Password</button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class='profile-view'>
+          <h3>Your Profile</h3>
+          <p class='message'></p>
+          <div class='profile-detail'>
+            <dl>
+              <dt>username</dt>
+              <dd class='username'></dd>
+            </dl>
+            <div>
+              <button class='button-primary signout-btn'>Sign Out</button>
+            </div>
+          </div>
         </div>
         <div class='correct-flash'><span>Correct!</span> <a>Next Problem</a></div>
         <li class='skip-btn'>
