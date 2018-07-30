@@ -75,7 +75,15 @@ learnjs.signinView = function() {
     learnjs.cognitoAuthConfig = {
       onSuccess: function(result) {
         view.find('.message').text('SignIn Success.');
-        learnjs.awsRefresh(result).then(
+        
+        AWS.config.region = learnjs.region;
+        var logins = {};
+        logins[learnjs.LoginsKey] = result.getIdToken().getJwtToken();
+        AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+          IdentityPoolId: learnjs.IdentityPoolId,
+          Logins: logins
+        });
+        learnjs.awsRefresh().then(
           function() {
             learnjs.identity.notify({
               username: learnjs.UserPool.getCurrentUser().username,
@@ -159,17 +167,8 @@ learnjs.Signout = function() {
   learnjs.identity.notify();
 }
 
-learnjs.awsRefresh = function(result) {
+learnjs.awsRefresh = function() {
   var deferred = new $.Deferred();
-
-  AWS.config.region = learnjs.region;
-  var logins = {};
-  logins[learnjs.LoginsKey] = result.getIdToken().getJwtToken();
-  AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: learnjs.IdentityPoolId,
-    Logins: logins
-  });
-
   AWS.config.credentials.clearCachedId();
   AWS.config.credentials.refresh(function(err) {
     if (err) {
@@ -229,6 +228,13 @@ learnjs.appOnReady = function(hash) {
       $('.signin-bar').find('.profile-link').text('');
     }
   });
+  if(learnjs.UserPool.getCurrentUser()) {
+    learnjs.identity.notify({
+      username: learnjs.UserPool.getCurrentUser().username,
+    });
+  } else {
+    learnjs.identity.notify();
+  }
 }
 
 learnjs.applyObject = function(obj, elem) {
@@ -262,5 +268,3 @@ learnjs.problems = [
     code: "function problem() { return 60 === 3 * __; }"
   }
 ];
-
-learnjs.identity.notify();
