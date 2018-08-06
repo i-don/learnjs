@@ -176,7 +176,7 @@ function create_identity_pool() {
 function create_table() {
   local table_dir=${1%/}
   local table_name=$(basename $table_dir)
-  local role_name="${2}_cognito_authenticated"
+  local role_name="${2}"
   if [[ ! -s ${table_dir}/table_info.json ]]; then
     aws --profile $profile dynamodb create-table \
       --table-name $table_name \

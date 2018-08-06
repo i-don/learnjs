@@ -2,3 +2,5 @@
 dist
 working
 master
+conf/dynamodb/tables/learnjs/role_policy.json
+conf/dynamodb/tables/learnjs/table_info.json
