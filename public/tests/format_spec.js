@@ -1,1 +1,1 @@
-return learnjs.problems.map(learnjs.formatCode);
+learnjs.problems.map(learnjs.formatCode);

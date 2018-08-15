@@ -7,8 +7,6 @@ var learnjs = {
   LoginsKey: 'cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_9P7D4UaFm'
 };
 
-learnjs.identity = new $.Deferred();
-
 learnjs.UserPool = new AWSCognito.CognitoIdentityServiceProvider.CognitoUserPool({
   UserPoolId: learnjs.UserPoolId,
   ClientId: learnjs.ClientId
@@ -155,7 +153,9 @@ learnjs.Signout = function() {
   return learnjs.refresh();
 }
 
-learnjs.refresh = function() {
+learnjs.identity = new $.Deferred();
+
+learnjs.refresh = function(forced) {
   var deferred = new $.Deferred();
 
   function AwsRefresh() {
@@ -168,10 +168,7 @@ learnjs.refresh = function() {
           learnjs.identity.notify();
           deferred.reject(err);
         } else {
-          learnjs.identity.notify({
-            id: AWS.config.credentials.identityId,
-            username: AWS.config.credentials.params.UserName,
-          });
+          learnjs.identity.notify(AWS.config.credentials);
           deferred.resolve(AWS.config.credentials);
         }
       });
@@ -186,7 +183,18 @@ learnjs.refresh = function() {
     cognitoUser.getSession(function(errGS, currSession) {
       if(currSession) {
         if(AWS.config.credentials) {
-          if(AWS.config.credentials.expired) {
+          var doRefresh = false;
+          if(forced) {
+            doRefresh = true;
+          } else if(!AWS.config.credentials.expireTime) {
+            doRefresh = true;
+          } else {
+            var remainingTime = (AWS.config.credentials.expireTime.getTime() - Date.now()) / 1000;
+            if(remainingTime < 300) {
+              doRefresh = true;
+            }
+          }
+          if(doRefresh) {
             var refresh_token = currSession.getRefreshToken();
             if(refresh_token) {
               cognitoUser.refreshSession(refresh_token, function(errRS, newSession) {
@@ -234,7 +242,9 @@ learnjs.profileView = function() {
     learnjs.Signout().then(
       function() {
         view.find('.message').text('Failed to sign out.');
-      }, dispNoSignIn);
+      }, 
+      dispNoSignIn
+    );
     return false;
   }
 
@@ -245,7 +255,9 @@ learnjs.profileView = function() {
       view.find('.profile-detail').css('display','');
       view.find('.username').text(identity.params.UserName);
       view.find('.id').text(identity.identityId);
-     }, dispNoSignIn);
+    },
+    dispNoSignIn
+  );
   return view;
 }
 
@@ -272,16 +284,17 @@ learnjs.triggerEvent = function(name, args) {
 learnjs.appOnReady = function(hash) {
   learnjs.identity.progress(function(identity) {
     if(identity){
-      $('.signin-bar').find('.profile-link').text(identity.username);
+      $('.signin-bar').find('.profile-link').text(identity.params.UserName);
     } else {
       $('.signin-bar').find('.profile-link').text('');
     }
   });
-  learnjs.refresh();
 
   window.onhashchange = function() {
     learnjs.showView(window.location.hash);
   }
+
+  learnjs.refresh();
   learnjs.showView(window.location.hash);
 }
 
@@ -289,7 +302,7 @@ learnjs.applyObject = function(obj, elem) {
   for (var key in obj) {
     elem.find('[data-name="' + key + '"]').text(obj[key]);
   }
-};
+}
 
 learnjs.flashElement = function(elem, content) {
   elem.fadeOut('fast', function() {
@@ -300,6 +313,10 @@ learnjs.flashElement = function(elem, content) {
 
 learnjs.template = function(name) {
   return $('.templates .' + name).clone();
+}
+
+learnjs.formatCode = function(obj) {
+  return obj;
 }
 
 learnjs.problems = [
@@ -362,7 +379,7 @@ learnjs.sendDbRequest = function(req, retry) {
   var deferred = new $.Deferred();
   req.on('error', function(error) {
     if(error.code === "CredentialsError") {
-      learnjs.refresh().then(
+      learnjs.refresh(true).then(
         function(credentials) {
           return retry();
         },

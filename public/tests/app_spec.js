@@ -10,20 +10,26 @@ describe('LearnJS', function() {
   });
 
   it('passes the hash view parameter to the view function', function() {
-    spyOn(learnjs, 'problemView');
+    spyOn(learnjs, 'problemView').and.callFake(function() {
+      console.log('Fake problemView');
+    });
     learnjs.showView('#problem-42');
     expect(learnjs.problemView).toHaveBeenCalledWith('42');
   });
 
   it('invokes the router when loaded', function() {
-    spyOn(learnjs, 'showView');
+    spyOn(learnjs, 'showView').and.callFake(function() {
+      console.log('Fake showView');
+    });
     learnjs.appOnReady();
     expect(learnjs.showView).toHaveBeenCalledWith(window.location.hash);
   });
 
   it('subscribes to the hash change event', function() {
     learnjs.appOnReady();
-    spyOn(learnjs, 'showView');
+    spyOn(learnjs, 'showView').and.callFake(function() {
+      console.log('Fake showView');
+    });
     $(window).trigger('hashchange')
     expect(learnjs.showView).toHaveBeenCalledWith(window.location.hash);
   });
