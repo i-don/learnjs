@@ -4,3 +4,4 @@ working
 master
 conf/dynamodb/tables/learnjs/role_policy.json
 conf/dynamodb/tables/learnjs/table_info.json
+conf/dynamodb/tables/learnjs/role_policy_condition.json

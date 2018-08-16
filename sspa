@@ -131,6 +131,25 @@ cat <<DOC
 DOC
 }
 
+function generate_table_policy_condition() {
+  local table_arn=$1
+cat <<DOC
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+      "Effect": "Allow",
+      "Action": ["dynamodb:Scan"],
+      "Resource": ["${table_arn}"],
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "dynamodb:Select": ["COUNT"]
+        }
+      }
+  }]
+}
+DOC
+}
+
 function create_cognito_auth_role() {
   local identity_pool_dir=$1
   local pool_id=$(support/jsed.py ${identity_pool_dir}/pool_info.json 'IdentityPoolId')
@@ -198,6 +217,11 @@ function create_table() {
     --policy-document file://${table_dir}/role_policy.json \
     --role-name ${role_name} \
     --policy-name ${table_name}_table_access
+  generate_table_policy_condition ${table_arn} > ${table_dir}/role_policy_condition.json
+  aws --profile $profile iam put-role-policy \
+    --policy-document file://${table_dir}/role_policy_condition.json \
+    --role-name ${role_name} \
+    --policy-name ${table_name}_table_access_condition
 }
 
 function build_bundle() {

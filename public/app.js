@@ -49,11 +49,15 @@ learnjs.problemView = function(data) {
       buttonItem.remove();
     });
   }
-
   learnjs.fetchAnswer(problemNumber).then(function(data) {
     if(data.Item) {
       answer.val(data.Item.answer);
     }
+  });
+
+  learnjs.countAnswer(problemNumber).then(function(data) {
+    var countAns = view.find('.countAns');
+    countAns.text('Number of users who answered correctly: ' + data.Count);
   });
   return view;
 }
@@ -332,19 +336,19 @@ learnjs.problems = [
     description: "Simple Math",
     code: "function problem() { return 60 === 3 * __; }"
   }
+  ,{
+    description: "Simple Math",
+    code: "function problem() { return 21 === 3 * __; }"
+  }
 ];
 
 learnjs.fetchAnswer = function(problemId) {
   return learnjs.refresh().then(function(identity) {
-    var userId = null;
-    if(identity){
-      userId = identity.identityId;
-    }
     var db = new AWS.DynamoDB.DocumentClient({region: learnjs.region});
     var item = {
       TableName: 'learnjs',
       Key: {
-        userId: userId,
+        userId: identity.identityId,
         problemId: problemId
       }
     };
@@ -354,17 +358,28 @@ learnjs.fetchAnswer = function(problemId) {
   });
 }
 
+learnjs.countAnswer = function(problemId) {
+  return learnjs.refresh().then(function(identity) {
+    var db = new AWS.DynamoDB.DocumentClient({region: learnjs.region});
+    var params = {
+      TableName: 'learnjs',
+      Select: 'COUNT',
+      FilterExpression: 'problemId = :problemId',
+      ExpressionAttributeValues: {':problemId': problemId}
+    };
+    return learnjs.sendDbRequest(db.scan(params), function() {
+      return learnjs.countAnswer(problemId);
+    });
+  });
+}
+
 learnjs.saveAnswer = function(problemId, answer) {
   return learnjs.refresh().then(function(identity) {
-    var userId = null;
-    if(identity){
-      userId = identity.identityId;
-    }
     var db = new AWS.DynamoDB.DocumentClient({region: learnjs.region});
     var item = {
       TableName: 'learnjs',
       Item: {
-        userId: userId,
+        userId: identity.identityId,
         problemId: problemId,
         answer: answer
       }
