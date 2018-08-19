@@ -4,7 +4,8 @@ var learnjs = {
   IdentityPoolId: 'ap-northeast-1:832c49ef-f09c-4385-bcf1-e4aa72aeec3d',
   UserPoolId: 'ap-northeast-1_9P7D4UaFm',
   ClientId: '3vhqikvlcs8p17qaoeriiq9luc',
-  LoginsKey: 'cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_9P7D4UaFm'
+  LoginsKey: 'cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_9P7D4UaFm',
+  ApiGwPopularAnswers: 'https://kdybky4bz1.execute-api.ap-northeast-1.amazonaws.com/prod/popularAnswers'
 };
 
 learnjs.UserPool = new AWSCognito.CognitoIdentityServiceProvider.CognitoUserPool({
@@ -21,6 +22,8 @@ learnjs.problemView = function(data) {
   var view = $('.templates .problem-view').clone();
   var problemData = learnjs.problems[problemNumber - 1];
   var answer = view.find('.answer');
+  var statistics = view.find('.statistics');
+  var popularAnswers = view.find('.popularAnswers');
   var resultFlash = view.find('.result');
 
   function checkAnswer() {
@@ -30,8 +33,42 @@ learnjs.problemView = function(data) {
 
   function checkAnswerClick() {
     if (checkAnswer()) {
+      statistics.css('display','');
       learnjs.flashElement(resultFlash, learnjs.buildCorrectFlash(problemNumber));
       learnjs.saveAnswer(problemNumber, answer.val());
+      var countAns = view.find('.countAns');
+      learnjs.countAnswer(problemNumber).then(function(data) {
+        countAns.text(data.Count);
+      },function() {
+        countAns.text('no data');
+      });
+      popularAnswers.empty();
+      learnjs.popularAnswers(problemNumber).then(function(data) {
+        if(data) {
+          var d = JSON.parse(data.Payload);
+          Object.keys(d).forEach(function(key) {
+            var item = learnjs.template('popularAnswersItem');
+            item.text(key);
+            popularAnswers.append(item);
+          });
+        } else {
+          popularAnswers.append(learnjs.template('popularAnswersItem').text('no data'));
+        }
+      },function() {
+        $.post(learnjs.ApiGwPopularAnswers, '{"problemNumber":' + problemNumber + '}').then(function(data) {
+          if(data) {
+            Object.keys(data).forEach(function(key) {
+              var item = learnjs.template('popularAnswersItem');
+              item.text(key);
+              popularAnswers.append(item);
+            });
+          } else {
+            popularAnswers.append(learnjs.template('popularAnswersItem').text('no data'));
+          }
+        },function() {
+          popularAnswers.append(learnjs.template('popularAnswersItem').text('no data'));
+        });
+      });
     } else {
       learnjs.flashElement(resultFlash, 'Incorrect!');
     }
@@ -54,11 +91,7 @@ learnjs.problemView = function(data) {
       answer.val(data.Item.answer);
     }
   });
-
-  learnjs.countAnswer(problemNumber).then(function(data) {
-    var countAns = view.find('.countAns');
-    countAns.text('Number of users who answered correctly: ' + data.Count);
-  });
+  statistics.css('display','none');
   return view;
 }
 
@@ -414,3 +447,43 @@ learnjs.sendDbRequest = function(req, retry) {
   req.send();
   return deferred.promise();
 }
+
+learnjs.popularAnswers = function(problemId) {
+  return learnjs.refresh().then(function() {
+    var lambda = new AWS.Lambda();
+    var params = {
+      FunctionName: 'popularAnswers',
+      Payload: JSON.stringify({problemNumber: problemId})
+    };
+    return learnjs.sendAwsRequest(lambda.invoke(params), function() {
+      return learnjs.popularAnswers(problemId);
+    });
+  });
+}
+
+learnjs.sendAwsRequest = function(req, retry) {
+  var deferred = new $.Deferred();
+  req.on('error', function(error) {
+    if(error.code === "CredentialsError") {
+      learnjs.refresh(true).then(
+        function(credentials) {
+          return retry();
+        },
+        function(errorRef) {
+          console.log(errorRef);
+          deferred.reject(errorRef);
+        }
+      );
+    } else {
+      console.log(error);
+      deferred.reject(error);
+    }
+  });
+  req.on('success', function(resp) {
+    deferred.resolve(resp.data);
+  });
+  req.send();
+  return deferred.promise();
+}
+
+

@@ -5,3 +5,7 @@ master
 conf/dynamodb/tables/learnjs/role_policy.json
 conf/dynamodb/tables/learnjs/table_info.json
 conf/dynamodb/tables/learnjs/role_policy_condition.json
+conf/iam/roles/learnjs_lambda_exec/info.json
+conf/lambda/functions/echo/info.json
+services/package-lock.json
+conf/lambda/functions/popularAnswers/info.json

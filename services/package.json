@@ -6,7 +6,7 @@
   "scripts": {
     "test": "make test"
   },
-  "author": "Ben Rady",
+  "author": "i-don",
   "license": "All Rights Reserved",
   "dependencies": {
     "aws-sdk": "2.2.4"

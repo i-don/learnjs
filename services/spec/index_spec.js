@@ -3,7 +3,8 @@ describe('lambda function', function() {
   var context;
 
   beforeEach(function() {
-    context = jasmine.createSpyObj('context', ['succeed']);
+    context = jasmine.createSpyObj('context', ['succeed', 'fail']);
+    index.dynamodb = jasmine.createSpyObj('dynamo', ['scan']);
   });
 
   describe('echo', function() {
@@ -13,4 +14,44 @@ describe('lambda function', function() {
       expect(context.succeed).toHaveBeenCalledWith(expected);
     });
   });
+
+  describe('popularAnswers', function() {
+    it('requests problems with the given problem number', function() {
+      index.popularAnswers({problemNumber: 42}, context);
+      expect(index.dynamodb.scan).toHaveBeenCalledWith({
+        FilterExpression: "problemId = :problemId",
+        ExpressionAttributeValues: { ":problemId": 42 },
+        TableName: 'learnjs'
+      }, jasmine.any(Function));
+    });
+
+    it('groups answers by minified code', function() {
+      index.popularAnswers({problemNumber: 1}, context);
+      index.dynamodb.scan.calls.first().args[1](undefined, {Items: [
+        {answer: "true"},
+        {answer: "true"},
+        {answer: "true"},
+        {answer: "true"},
+        {answer: "true"},
+        {answer: "true"},
+        {answer: "!false"},
+        {answer: "!false"},
+        {answer: "!false"},
+        {answer: "!false"},
+        {answer: "!false"},
+        {answer: "4==4"},
+        {answer: "4==4"},
+        {answer: "4==4"},
+        {answer: "4==4"},
+        {answer: "3==3"},
+        {answer: "3==3"},
+        {answer: "3==3"},
+        {answer: "2==2"},
+        {answer: "2==2"},
+        {answer: "1==1"},
+      ]});
+      expect(context.succeed).toHaveBeenCalledWith({"true": 6, "!false": 5, "4==4": 4, "3==3": 3, "2==2": 2});
+    });
+  });
+
 });
