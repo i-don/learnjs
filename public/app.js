@@ -26,27 +26,30 @@ learnjs.problemView = function(data) {
   var popularAnswers = view.find('.popularAnswers');
   var resultFlash = view.find('.result');
 
-  function checkAnswer() {
-    var test =  problemData.code.replace('__', answer.val()) + '; problem();';
-    return eval(test);
-  }
-
-  function checkAnswerClick() {
-    if (checkAnswer()) {
-      statistics.css('display','');
-      learnjs.flashElement(resultFlash, learnjs.buildCorrectFlash(problemNumber));
-      learnjs.saveAnswer(problemNumber, answer.val());
-      var countAns = view.find('.countAns');
-      learnjs.countAnswer(problemNumber).then(function(data) {
-        countAns.text(data.Count);
-      },function() {
-        countAns.text('no data');
-      });
-      popularAnswers.empty();
-      learnjs.popularAnswers(problemNumber).then(function(data) {
+  function showStatistics() {
+    statistics.css('display','');
+    var countAns = view.find('.countAns');
+    learnjs.countAnswer(problemNumber).then(function(data) {
+      countAns.text(data.Count);
+    },function() {
+      countAns.text('no data');
+    });
+    popularAnswers.empty();
+    learnjs.popularAnswers(problemNumber).then(function(data) {
+      if(data) {
+        var d = JSON.parse(data.Payload);
+        Object.keys(d).forEach(function(key) {
+          var item = learnjs.template('popularAnswersItem');
+          item.text(key);
+          popularAnswers.append(item);
+        });
+      } else {
+        popularAnswers.append(learnjs.template('popularAnswersItem').text('no data'));
+      }
+    },function() {
+      $.post(learnjs.ApiGwPopularAnswers, '{"problemNumber":' + problemNumber + '}').then(function(data) {
         if(data) {
-          var d = JSON.parse(data.Payload);
-          Object.keys(d).forEach(function(key) {
+          Object.keys(data).forEach(function(key) {
             var item = learnjs.template('popularAnswersItem');
             item.text(key);
             popularAnswers.append(item);
@@ -55,23 +58,34 @@ learnjs.problemView = function(data) {
           popularAnswers.append(learnjs.template('popularAnswersItem').text('no data'));
         }
       },function() {
-        $.post(learnjs.ApiGwPopularAnswers, '{"problemNumber":' + problemNumber + '}').then(function(data) {
-          if(data) {
-            Object.keys(data).forEach(function(key) {
-              var item = learnjs.template('popularAnswersItem');
-              item.text(key);
-              popularAnswers.append(item);
-            });
-          } else {
-            popularAnswers.append(learnjs.template('popularAnswersItem').text('no data'));
-          }
-        },function() {
-          popularAnswers.append(learnjs.template('popularAnswersItem').text('no data'));
-        });
+        popularAnswers.append(learnjs.template('popularAnswersItem').text('no data'));
       });
-    } else {
-      learnjs.flashElement(resultFlash, 'Incorrect!');
+    });
+  }
+
+  function checkAnswer() {
+    var deferred = $.Deferred();
+    var test =  problemData.code.replace('__', answer.val()) + '; problem();';
+    var worker = new Worker('worker.js');
+    worker.onmessage = function(e) {
+      if(e.data) {
+        deferred.resolve(e.data);
+      } else {
+        deferred.reject();
+      }
     }
+    worker.postMessage(test);
+    return deferred.promise();
+  }
+
+  function checkAnswerClick() {
+    checkAnswer().then( function() {
+      learnjs.flashElement(resultFlash, learnjs.buildCorrectFlash(problemNumber));
+      learnjs.saveAnswer(problemNumber, answer.val());
+      showStatistics();
+    }, function() {
+      learnjs.flashElement(resultFlash, 'Incorrect!');
+    });
     return false;
   }
 
